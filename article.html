@@ -1,0 +1,270 @@
+(function() {
+  const PASS = 'admin1234';
+  const params = new URLSearchParams(window.location.search);
+  const isAdminRequest = params.get('admin') === '1';
+
+  if (isAdminRequest) {
+    const pw = prompt('סיסמת מנהל:');
+    if (pw === PASS) {
+      sessionStorage.setItem('hbs_admin', '1');
+      window.history.replaceState({}, '', window.location.pathname);
+    } else { alert('סיסמה שגויה'); return; }
+  }
+  if (sessionStorage.getItem('hbs_admin') !== '1') return;
+
+  const changes = {};
+  let changeCount = 0;
+
+  // ===== TOOLBAR =====
+  document.body.style.paddingTop = '44px';
+  const bar = document.createElement('div');
+  bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#0D0D0D;height:44px;display:flex;align-items:center;gap:10px;padding:0 16px;font-family:sans-serif;font-size:12px;border-bottom:2px solid #B91C1C;direction:rtl;';
+  bar.innerHTML = `
+    <span style="color:#B91C1C;font-weight:700;font-size:11px;">✎ מצב עריכה</span>
+    <span style="width:1px;height:18px;background:rgba(255,255,255,.2);display:inline-block;"></span>
+    <span id="hbs-hint" style="color:rgba(255,255,255,.45);font-size:11px;">לחץ על תמונה או טקסט</span>
+    <div style="margin-right:auto;display:flex;gap:8px;align-items:center;">
+      <span id="hbs-count" style="color:#F4B942;font-size:11px;font-weight:600;display:none;">0 שינויים</span>
+      <button id="hbs-save" style="background:#16a34a;color:#fff;border:none;border-radius:4px;padding:5px 14px;font-size:11px;font-weight:700;cursor:pointer;display:none;">💾 שמור שינויים</button>
+      <a href="admin.html" style="background:rgba(255,255,255,.1);color:#fff;border-radius:4px;padding:5px 12px;font-size:11px;text-decoration:none;">ניהול ←</a>
+      <button id="hbs-exit" style="background:rgba(255,255,255,.08);color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.15);border-radius:4px;padding:5px 10px;font-size:11px;cursor:pointer;">✕ יציאה</button>
+    </div>
+  `;
+  document.body.appendChild(bar);
+
+  document.getElementById('hbs-exit').onclick = function() {
+    if (changeCount > 0 && !confirm('יש שינויים שלא נשמרו. לצאת?')) return;
+    sessionStorage.removeItem('hbs_admin');
+    location.reload();
+  };
+
+  function updateBadge() {
+    const badge = document.getElementById('hbs-count');
+    const btn = document.getElementById('hbs-save');
+    if (changeCount > 0) {
+      badge.textContent = changeCount + ' שינויים';
+      badge.style.display = 'inline';
+      btn.style.display = 'inline-block';
+    }
+  }
+
+  // ===== SAVE PANEL =====
+  const savePanel = document.createElement('div');
+  savePanel.id = 'hbs-save-panel';
+  savePanel.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;font-family:sans-serif;direction:rtl;';
+  savePanel.innerHTML = `
+    <div style="background:#1a1a2e;border:1px solid #B91C1C;border-radius:10px;padding:24px;max-width:560px;width:90%;color:#fff;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <span style="font-size:16px;font-weight:700;">💾 שמירת שינויים</span>
+        <button id="hbs-sp-close" style="background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:20px;">✕</button>
+      </div>
+      <p style="color:rgba(255,255,255,.7);font-size:13px;margin-bottom:16px;">יש לך <span id="hbs-sp-count" style="color:#F4B942;font-weight:700;"></span>. בחר כיצד לשמור:</p>
+      
+      <div style="display:grid;gap:10px;">
+        
+        <div id="hbs-opt-copy" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:14px;cursor:pointer;transition:border-color .2s;" onmouseover="this.style.borderColor='#B91C1C'" onmouseout="this.style.borderColor='rgba(255,255,255,.15)'">
+          <div style="font-weight:700;margin-bottom:4px;">📋 שלח לי את שמות הקבצים</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.5);">לחץ → מעתיק רשימת שינויים ללוח → שלח לקלוד לעדכון</div>
+        </div>
+
+        <div id="hbs-opt-dl" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:14px;cursor:pointer;transition:border-color .2s;" onmouseover="this.style.borderColor='#16a34a'" onmouseout="this.style.borderColor='rgba(255,255,255,.15)'">
+          <div style="font-weight:700;margin-bottom:4px;">⬇ הורד דף מעודכן</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.5);">מנסה הורדה ישירה → אחר כך גרור ל-Netlify</div>
+        </div>
+
+        <div id="hbs-opt-view" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:14px;cursor:pointer;transition:border-color .2s;" onmouseover="this.style.borderColor='#5B8DEF'" onmouseout="this.style.borderColor='rgba(255,255,255,.15)'">
+          <div style="font-weight:700;margin-bottom:4px;">👁 הצג HTML מעודכן</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.5);">פתח חלון עם הקוד → בחר הכל → Ctrl+C → שמור כ-.html</div>
+        </div>
+
+      </div>
+
+      <div id="hbs-copy-result" style="margin-top:14px;display:none;">
+        <textarea id="hbs-copy-text" style="width:100%;height:120px;background:#0D0D0D;color:#a3e635;border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:10px;font-size:11px;font-family:monospace;box-sizing:border-box;resize:none;" readonly></textarea>
+        <button id="hbs-do-copy" style="width:100%;margin-top:8px;background:#B91C1C;color:#fff;border:none;border-radius:4px;padding:9px;font-size:13px;font-weight:700;cursor:pointer;">📋 העתק ושלח לקלוד</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(savePanel);
+
+  document.getElementById('hbs-sp-close').onclick = () => savePanel.style.display = 'none';
+
+  document.getElementById('hbs-save').onclick = () => {
+    document.getElementById('hbs-sp-count').textContent = changeCount + ' שינויים';
+    document.getElementById('hbs-copy-result').style.display = 'none';
+    savePanel.style.display = 'flex';
+  };
+
+  // Option 1: Copy change summary for Claude
+  document.getElementById('hbs-opt-copy').onclick = function() {
+    const lines = ['שלום קלוד! החלפתי את הקבצים הבאים באתר הבית שלנו:', ''];
+    Object.entries(changes).forEach(([id, info]) => {
+      lines.push(`• ${info.type === 'img' ? 'תמונה' : 'טקסט'} | ${info.selector} | ${info.type === 'img' ? 'קובץ: ' + info.filename : 'טקסט חדש: "' + info.newVal.substring(0,50) + '"'}`);
+    });
+    lines.push('', 'אנא עדכן את הקבצים הרלוונטיים.');
+    const text = lines.join('\n');
+    document.getElementById('hbs-copy-text').value = text;
+    document.getElementById('hbs-copy-result').style.display = 'block';
+  };
+
+  document.getElementById('hbs-do-copy').onclick = function() {
+    const ta = document.getElementById('hbs-copy-text');
+    ta.select();
+    try {
+      navigator.clipboard.writeText(ta.value).then(() => showToast('✓ הועתק! הדבק בצ\'אט עם קלוד'));
+    } catch(e) {
+      document.execCommand('copy');
+      showToast('✓ הועתק! הדבק בצ\'אט עם קלוד');
+    }
+  };
+
+  // Option 2: Direct download
+  document.getElementById('hbs-opt-dl').onclick = function() {
+    const clone = document.documentElement.cloneNode(true);
+    ['#hbs-bar','#hbs-save-panel','#hbs-tooltip','#hbs-editor','#hbs-file','#hbs-toast'].forEach(s => clone.querySelector(s)?.remove());
+    clone.querySelectorAll('script').forEach(s => { if((s.src||'').includes('admin-bar')) s.remove(); });
+    clone.querySelectorAll('[data-hbs-id]').forEach(el => el.removeAttribute('data-hbs-id'));
+    clone.body.style.paddingTop = '';
+    const html = '<!DOCTYPE html>\n' + clone.outerHTML;
+    const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = (location.pathname.split('/').pop().replace('.html','') || 'index') + '.html';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+    showToast('✓ מוריד קובץ...');
+    savePanel.style.display = 'none';
+  };
+
+  // Option 3: Show HTML in textarea
+  document.getElementById('hbs-opt-view').onclick = function() {
+    const clone = document.documentElement.cloneNode(true);
+    ['#hbs-bar','#hbs-save-panel','#hbs-tooltip','#hbs-editor','#hbs-file','#hbs-toast'].forEach(s => clone.querySelector(s)?.remove());
+    clone.querySelectorAll('script').forEach(s => { if((s.src||'').includes('admin-bar')) s.remove(); });
+    clone.querySelectorAll('[data-hbs-id]').forEach(el => el.removeAttribute('data-hbs-id'));
+    clone.body.style.paddingTop = '';
+    const html = '<!DOCTYPE html>\n' + clone.outerHTML;
+    document.getElementById('hbs-copy-text').value = html;
+    document.getElementById('hbs-do-copy').textContent = '📋 העתק את כל הקוד';
+    document.getElementById('hbs-copy-result').style.display = 'block';
+  };
+
+  // ===== TOOLTIP =====
+  const tooltip = document.createElement('div');
+  tooltip.id = 'hbs-tooltip';
+  tooltip.style.cssText = 'position:fixed;z-index:99998;background:#0D0D0D;color:#fff;border-radius:6px;padding:8px 12px;font-family:sans-serif;font-size:11px;box-shadow:0 4px 16px rgba(0,0,0,.5);display:none;pointer-events:none;border:1px solid rgba(255,255,255,.15);direction:rtl;white-space:nowrap;';
+  document.body.appendChild(tooltip);
+
+  // ===== TEXT EDITOR =====
+  const editorPanel = document.createElement('div');
+  editorPanel.id = 'hbs-editor';
+  editorPanel.style.cssText = 'position:fixed;bottom:16px;left:16px;z-index:99998;background:#1A1A2E;border:1px solid #B91C1C;border-radius:8px;padding:14px;width:300px;direction:rtl;font-family:sans-serif;box-shadow:0 8px 32px rgba(0,0,0,.6);display:none;';
+  editorPanel.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <span style="color:#fff;font-size:12px;font-weight:600;">✏️ עריכת טקסט</span>
+      <button id="hbs-ec" style="background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:16px;">✕</button>
+    </div>
+    <textarea id="hbs-et" style="width:100%;height:80px;background:#0D0D0D;color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:7px;font-size:12px;resize:vertical;direction:rtl;font-family:sans-serif;box-sizing:border-box;"></textarea>
+    <div style="display:flex;gap:7px;margin-top:8px;">
+      <button id="hbs-es" style="flex:1;background:#B91C1C;color:#fff;border:none;border-radius:4px;padding:6px;font-size:11px;font-weight:700;cursor:pointer;">✓ החל</button>
+      <button id="hbs-ec2" style="background:rgba(255,255,255,.1);color:#fff;border:none;border-radius:4px;padding:6px 10px;font-size:11px;cursor:pointer;">ביטול</button>
+    </div>
+  `;
+  document.body.appendChild(editorPanel);
+
+  let currentTextEl = null;
+  document.getElementById('hbs-ec').onclick =
+  document.getElementById('hbs-ec2').onclick = () => { editorPanel.style.display='none'; };
+
+  document.getElementById('hbs-es').onclick = function() {
+    if (!currentTextEl) return;
+    const newVal = document.getElementById('hbs-et').value;
+    const id = currentTextEl.dataset.hbsId;
+    changes[id] = { type:'text', selector: currentTextEl.tagName.toLowerCase() + (currentTextEl.className ? '.'+currentTextEl.className.split(' ')[0] : ''), newVal, oldVal: currentTextEl.textContent };
+    currentTextEl.textContent = newVal;
+    changeCount++;
+    updateBadge();
+    editorPanel.style.display = 'none';
+    showToast('✓ עודכן — לחץ "שמור שינויים" לשמירה');
+  };
+
+  // ===== FILE INPUT =====
+  const fileInput = document.createElement('input');
+  fileInput.id = 'hbs-file';
+  fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
+  document.body.appendChild(fileInput);
+  let currentImg = null;
+
+  fileInput.onchange = function() {
+    if (!this.files[0] || !currentImg) return;
+    const file = this.files[0];
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const id = currentImg.dataset.hbsId;
+      changes[id] = { type:'img', selector:'img', filename: file.name, newVal: e.target.result };
+      currentImg.src = e.target.result;
+      changeCount++;
+      updateBadge();
+      showToast('✓ תמונה הוחלפה — לחץ "שמור שינויים"');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // ===== ASSIGN IDs =====
+  let idCounter = 0;
+  const EDITABLES = 'img, h1, h2, h3, .card-title, .hsi-title, .hero-main-title, .art-title, .wide-title, .eb-name, .card-exc, .hsi-exc';
+  document.querySelectorAll(EDITABLES).forEach(el => {
+    if (el.closest('#hbs-bar,#hbs-editor,#hbs-save-panel')) return;
+    el.dataset.hbsId = 'e' + (idCounter++);
+  });
+
+  // ===== HOVER =====
+  let hovered = null;
+  document.addEventListener('mouseover', function(e) {
+    const el = e.target.closest(EDITABLES);
+    if (!el || el.closest('#hbs-bar,#hbs-editor,#hbs-save-panel')) return;
+    if (hovered && hovered !== el) { hovered.style.outline=''; hovered.style.cursor=''; }
+    hovered = el;
+    const isImg = el.tagName === 'IMG';
+    el.style.outline = `2px dashed ${isImg ? '#F4B942' : '#5B8DEF'}`;
+    el.style.outlineOffset = '2px';
+    el.style.cursor = 'pointer';
+    tooltip.innerHTML = isImg ? '<span style="color:#F4B942;font-weight:600;">🖼 לחץ להחלפת תמונה</span>' : '<span style="color:#5B8DEF;font-weight:600;">✏️ לחץ לעריכת טקסט</span>';
+    const r = el.getBoundingClientRect();
+    tooltip.style.display = 'block';
+    tooltip.style.top = Math.max(50, r.top - 36) + 'px';
+    tooltip.style.left = Math.max(8, r.left) + 'px';
+  });
+
+  document.addEventListener('mouseout', function(e) {
+    const el = e.target.closest(EDITABLES);
+    if (!el || el.contains(e.relatedTarget)) return;
+    el.style.outline=''; el.style.cursor=''; tooltip.style.display='none'; hovered=null;
+  });
+
+  // ===== CLICK =====
+  document.addEventListener('click', function(e) {
+    const el = e.target.closest(EDITABLES);
+    if (!el || el.closest('#hbs-bar,#hbs-editor,#hbs-save-panel')) return;
+    e.preventDefault(); e.stopPropagation();
+    if (el.tagName === 'IMG') { currentImg = el; fileInput.click(); }
+    else { currentTextEl = el; document.getElementById('hbs-et').value = el.textContent.trim(); editorPanel.style.display='block'; document.getElementById('hbs-et').focus(); }
+  }, true);
+
+  document.addEventListener('keydown', e => { if(e.key==='Escape') { editorPanel.style.display='none'; savePanel.style.display='none'; }});
+
+  // ===== TOAST =====
+  const toast = document.createElement('div');
+  toast.id = 'hbs-toast';
+  toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:#0D0D0D;color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:9px 18px;font-family:sans-serif;font-size:12px;z-index:999999;transition:all .3s;opacity:0;white-space:nowrap;pointer-events:none;';
+  document.body.appendChild(toast);
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.style.opacity='1'; toast.style.transform='translateX(-50%) translateY(0)';
+    clearTimeout(toast._t);
+    toast._t = setTimeout(()=>{ toast.style.opacity='0'; toast.style.transform='translateX(-50%) translateY(60px)'; },3500);
+  }
+
+})();

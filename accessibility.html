@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>עמוד לא נמצא — הבית שלנו</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Noto+Sans+Hebrew:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0D0D0D">
+<link rel="stylesheet" href="style.css">
+<style>
+.err-wrap{min-height:70vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:40px 20px;}
+.err-num{font-family:var(--serif,'Playfair Display',serif);font-size:120px;font-weight:900;color:var(--rule,#D4CFC8);line-height:1;margin-bottom:16px;}
+.err-title{font-family:var(--serif,'Playfair Display',serif);font-size:28px;font-weight:700;color:var(--ink,#0D0D0D);margin-bottom:12px;}
+.err-sub{font-size:15px;color:var(--muted,#5C5C5C);line-height:1.7;margin-bottom:28px;max-width:440px;}
+.err-links{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.err-btn{padding:10px 22px;border-radius:3px;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;text-decoration:none;}
+.err-btn-pri{background:#0D0D0D;color:#fff;}
+.err-btn-pri:hover{background:#B91C1C;}
+.err-btn-sec{border:1px solid #D4CFC8;color:#0D0D0D;background:#fff;}
+.err-btn-sec:hover{background:#F5F2EC;}
+</style>
+</head>
+<body>
+<div class="meta-bar"><div class="wrap meta-bar-inner"><span class="meta-date">הבית שלנו — המגזין המוביל לעיצוב פנים</span><div class="meta-links"><a href="index.html">עמוד הבית</a></div></div></div>
+<div class="wrap"><div class="masthead"><div class="masthead-inner"><a href="index.html" class="logo-block"><div class="logo-heb">הבית <span class="accent">שלנו</span></div></a></div></div></div>
+<nav class="main-nav"><div class="wrap"><div class="nav-inner"><a href="index.html" class="nav-link">ראשי</a><a href="category-bath.html" class="nav-link">חדרי אמבטיה</a><a href="category-kitchen.html" class="nav-link">מטבחים</a><a href="guide.html" class="nav-link">מדריכים</a><a href="experts.html" class="nav-link">מומחים</a></div></div></nav>
+<div class="wrap">
+  <div class="err-wrap">
+    <div>
+      <div class="err-num">404</div>
+      <div class="err-title">העמוד הזה לא קיים</div>
+      <p class="err-sub">ייתכן שהקישור השתנה, הועבר, או שפשוט הגעתם לכתובת שגויה. אל דאגה — יש לנו המון תוכן מעולה.</p>
+      <div class="err-links">
+        <a href="index.html" class="err-btn err-btn-pri">חזרה לעמוד הבית ←</a>
+        <a href="category-bath.html" class="err-btn err-btn-sec">כל הכתבות</a>
+        <a href="guide.html" class="err-btn err-btn-sec">מדריכי עיצוב</a>
+      </div>
+    </div>
+  </div>
+</div>
+<footer><div class="footer-top"><div class="f-brand"><div class="logo-heb">הבית <span class="accent">שלנו</span></div><p>המגזין המוביל בישראל לעיצוב הבית.</p></div></div><div class="footer-bottom"><span>© 2026 הבית שלנו</span></div></footer>
+
+<!-- SCROLL TO TOP -->
+<button id="scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" style="
+  position:fixed;bottom:24px;left:24px;z-index:150;
+  width:44px;height:44px;border-radius:50%;
+  background:var(--ink);color:#fff;border:none;cursor:pointer;
+  font-size:18px;display:none;align-items:center;justify-content:center;
+  box-shadow:0 4px 16px rgba(0,0,0,.3);transition:all .2s;
+" onmouseover="this.style.background='#B91C1C'" onmouseout="this.style.background='var(--ink)'">↑</button>
+<script>
+const _sb=document.getElementById('scroll-top');
+window.addEventListener('scroll',()=>{_sb.style.display=window.scrollY>400?'flex':'none';});
+</script>
+
+</body></html>
