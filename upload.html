@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ניהול תמונות — הבית שלנו</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:sans-serif;background:#0f0f1a;color:#fff;min-height:100vh;padding:24px;direction:rtl;}
+.wrap{max-width:700px;margin:0 auto;}
+h1{font-size:22px;font-weight:700;margin-bottom:4px;}
+.sub{color:rgba(255,255,255,.45);font-size:13px;margin-bottom:28px;}
+.card{background:#1a1a2e;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:20px;margin-bottom:16px;}
+.card h2{font-size:15px;font-weight:700;margin-bottom:14px;color:#fff;}
+label{display:block;font-size:12px;color:rgba(255,255,255,.5);margin-bottom:6px;}
+select,input[type=text],input[type=password]{width:100%;background:#0f0f1a;border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:10px 12px;color:#fff;font-size:14px;font-family:sans-serif;direction:rtl;outline:none;}
+select:focus,input:focus{border-color:#B91C1C;}
+.drop{border:2px dashed rgba(255,255,255,.2);border-radius:8px;padding:32px;text-align:center;cursor:pointer;transition:all .2s;position:relative;}
+.drop:hover,.drop.over{border-color:#B91C1C;background:rgba(185,28,28,.08);}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.drop-icon{font-size:36px;margin-bottom:8px;}
+.drop p{font-size:13px;color:rgba(255,255,255,.5);}
+.preview{width:100%;max-height:200px;object-fit:cover;border-radius:6px;margin-top:14px;display:none;}
+.btn{width:100%;background:#B91C1C;color:#fff;border:none;border-radius:6px;padding:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:14px;transition:background .2s;}
+.btn:hover{background:#991818;}
+.btn:disabled{background:#444;cursor:not-allowed;}
+.status{margin-top:12px;padding:12px;border-radius:6px;font-size:13px;display:none;}
+.status.ok{background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:#86efac;}
+.status.err{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#fca5a5;}
+.status.loading{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.7);}
+.img-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;}
+.img-item{position:relative;border-radius:6px;overflow:hidden;border:2px solid transparent;cursor:pointer;transition:border-color .2s;}
+.img-item:hover,.img-item.selected{border-color:#B91C1C;}
+.img-item img{width:100%;height:80px;object-fit:cover;display:block;}
+.img-item span{display:block;font-size:10px;color:rgba(255,255,255,.5);padding:4px 6px;background:#0f0f1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.back{display:inline-flex;align-items:center;gap:6px;color:rgba(255,255,255,.5);text-decoration:none;font-size:13px;margin-bottom:20px;}
+.back:hover{color:#fff;}
+.login-wrap{max-width:360px;margin:80px auto;}
+.pw-title{font-size:20px;font-weight:700;margin-bottom:6px;}
+.pw-sub{color:rgba(255,255,255,.45);font-size:13px;margin-bottom:24px;}
+</style>
+</head>
+<body>
+<div class="wrap" id="login-screen">
+  <div class="login-wrap">
+    <div class="pw-title">🔐 כניסת מנהל</div>
+    <div class="pw-sub">הזן סיסמה לגישה לניהול תמונות</div>
+    <div class="card">
+      <label>סיסמה</label>
+      <input type="password" id="pw-input" placeholder="הזן סיסמה" onkeydown="if(event.key==='Enter')doLogin()">
+      <button class="btn" onclick="doLogin()" style="margin-top:12px;">כניסה</button>
+      <div id="pw-err" class="status err"></div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" id="main-screen" style="display:none;">
+  <a href="index.html" class="back">← חזרה לאתר</a>
+  <h1>📸 ניהול תמונות</h1>
+  <p class="sub">בחר תמונה קיימת להחלפה, העלה קובץ חדש ולחץ שמור</p>
+
+  <div class="card">
+    <h2>1. בחר איזו תמונה להחליף</h2>
+    <div class="img-grid" id="img-grid">
+      <div style="color:rgba(255,255,255,.3);font-size:13px;grid-column:1/-1;text-align:center;padding:20px;">טוען תמונות...</div>
+    </div>
+    <div id="selected-name" style="margin-top:10px;font-size:12px;color:#F4B942;display:none;">✓ נבחר: <span></span></div>
+  </div>
+
+  <div class="card">
+    <h2>2. העלה תמונה חדשה</h2>
+    <div class="drop" id="drop-zone">
+      <input type="file" id="file-input" accept="image/*" onchange="handleFile(this.files[0])">
+      <div class="drop-icon">🖼</div>
+      <p>גרור תמונה לכאן או לחץ לבחירה</p>
+      <p style="margin-top:4px;font-size:11px;">JPG, PNG, WEBP — עד 5MB</p>
+    </div>
+    <img id="preview" class="preview">
+  </div>
+
+  <div class="card">
+    <h2>3. שמור</h2>
+    <button class="btn" id="upload-btn" onclick="doUpload()" disabled>💾 החלף תמונה באתר</button>
+    <div class="status" id="status"></div>
+  </div>
+</div>
+
+<script>
+const PASS = 'admin1234';
+const GITHUB_TOKEN = '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';
+const REPO = 'lior5340/habayit';
+const BRANCH = 'main';
+const API = 'https://api.github.com';
+
+let selectedFile = null;
+let selectedPath = null;
+let selectedSha = null;
+
+function doLogin() {
+  const pw = document.getElementById('pw-input').value;
+  if (pw === PASS) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-screen').style.display = 'block';
+    loadImages();
+  } else {
+    const err = document.getElementById('pw-err');
+    err.textContent = 'סיסמה שגויה';
+    err.style.display = 'block';
+  }
+}
+
+async function loadImages() {
+  const grid = document.getElementById('img-grid');
+  try {
+    const res = await fetch(`${API}/repos/${REPO}/contents/images`, {
+      headers: { Authorization: `token ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json' }
+    });
+    const files = await res.json();
+    const imgs = files.filter(f => /\.(jpg|jpeg|png|webp|gif)$/i.test(f.name));
+    grid.innerHTML = '';
+    imgs.forEach(img => {
+      const rawUrl = `https://raw.githubusercontent.com/${REPO}/${BRANCH}/images/${img.name}?t=${Date.now()}`;
+      const div = document.createElement('div');
+      div.className = 'img-item';
+      div.innerHTML = `<img src="${rawUrl}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2280%22><rect fill=%22%23333%22 width=%2280%22 height=%2280%22/></svg>'"><span>${img.name}</span>`;
+      div.onclick = () => selectImage(div, img.name, img.sha);
+      grid.appendChild(div);
+    });
+  } catch(e) {
+    grid.innerHTML = '<div style="color:#fca5a5;grid-column:1/-1;text-align:center;padding:20px;">שגיאה בטעינת תמונות</div>';
+  }
+}
+
+function selectImage(el, name, sha) {
+  document.querySelectorAll('.img-item').forEach(i => i.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedPath = 'images/' + name;
+  selectedSha = sha;
+  const nameEl = document.getElementById('selected-name');
+  nameEl.style.display = 'block';
+  nameEl.querySelector('span').textContent = name;
+  checkReady();
+}
+
+function handleFile(file) {
+  if (!file) return;
+  selectedFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const prev = document.getElementById('preview');
+    prev.src = e.target.result;
+    prev.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+  checkReady();
+}
+
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('over'); handleFile(e.dataTransfer.files[0]); });
+
+function checkReady() {
+  document.getElementById('upload-btn').disabled = !(selectedFile && selectedPath);
+}
+
+async function doUpload() {
+  const btn = document.getElementById('upload-btn');
+  const status = document.getElementById('status');
+  btn.disabled = true;
+  btn.textContent = '⏳ מעלה...';
+  status.className = 'status loading';
+  status.style.display = 'block';
+  status.textContent = 'מעלה תמונה ל-GitHub...';
+
+  try {
+    const reader = new FileReader();
+    reader.onload = async e => {
+      const base64 = e.target.result.split(',')[1];
+      const body = {
+        message: `עדכון תמונה: ${selectedPath}`,
+        content: base64,
+        branch: BRANCH
+      };
+      if (selectedSha) body.sha = selectedSha;
+
+      const res = await fetch(`${API}/repos/${REPO}/contents/${selectedPath}`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `token ${GITHUB_TOKEN}`,
+          Accept: 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (res.ok) {
+        status.className = 'status ok';
+        status.textContent = '✓ התמונה עודכנה! האתר יתרענן תוך 30 שניות.';
+        btn.textContent = '✓ נשמר!';
+        setTimeout(() => loadImages(), 3000);
+      } else {
+        const err = await res.json();
+        throw new Error(err.message || 'שגיאה בהעלאה');
+      }
+    };
+    reader.readAsDataURL(selectedFile);
+  } catch(e) {
+    status.className = 'status err';
+    status.textContent = 'שגיאה: ' + e.message;
+    btn.disabled = false;
+    btn.textContent = '💾 החלף תמונה באתר';
+  }
+}
+</script>
+</body>
+</html>

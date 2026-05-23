@@ -1,4 +1,17 @@
 [[redirects]]
-  from = "/*"
-  to = "/404.html"
-  status = 404
+  from = "/manage.html"
+  to = "/manage.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/upload.html"
+  to = "/upload.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/admin.html"
+  to = "/admin.html"
+  status = 200
+  force = true
