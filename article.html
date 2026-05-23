@@ -200,14 +200,28 @@
   fileInput.onchange = function() {
     if (!this.files[0] || !currentImg) return;
     const file = this.files[0];
+    const imgPath = 'images/' + file.name;
     const reader = new FileReader();
-    reader.onload = function(e) {
-      const id = currentImg.dataset.hbsId;
-      changes[id] = { type:'img', selector:'img', filename: file.name, newVal: e.target.result };
+    reader.onload = async function(e) {
+      // Show immediately
       currentImg.src = e.target.result;
+      const id = currentImg.dataset.hbsId;
+      changes[id] = { type:'img', selector:'img', filename: file.name, newVal: e.target.result, path: imgPath };
       changeCount++;
       updateBadge();
-      showToast('✓ תמונה הוחלפה — לחץ "שמור שינויים"');
+      showToast('⏳ שומר תמונה...');
+      try {
+        const base64 = e.target.result.split(',')[1];
+        const sha = await getFileSha(imgPath);
+        const ok = await saveToGitHub(imgPath, base64, sha);
+        if (ok) {
+          showToast('✓ התמונה נשמרה! האתר יתעדכן תוך 30 שניות');
+        } else {
+          showToast('✓ תמונה הוחלפה מקומית — לחץ "שמור" לשמירה קבועה');
+        }
+      } catch(e) {
+        showToast('✓ תמונה הוחלפה — לחץ "שמור" לשמירה קבועה');
+      }
     };
     reader.readAsDataURL(file);
   };
