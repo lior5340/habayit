@@ -1,17 +1,12 @@
-[[redirects]]
-  from = "/manage.html"
-  to = "/manage.html"
-  status = 200
-  force = true
+[build]
+  publish = "."
 
-[[redirects]]
-  from = "/upload.html"
-  to = "/upload.html"
-  status = 200
-  force = true
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Content-Type = "application/javascript"
 
-[[redirects]]
-  from = "/admin.html"
-  to = "/admin.html"
-  status = 200
-  force = true
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Content-Type = "text/html; charset=UTF-8"
